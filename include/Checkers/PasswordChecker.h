@@ -4,6 +4,11 @@
 #include <memory>
 #include <string>
 
+/**
+ * This is a main class for a chain of responsibility. Each member of this class has a pointer 'nextChecker'
+ * which is a pointer to the other member of the class, thus, creating a chain.
+ * Also, each member should implement 'check' method, to check the password uniquely.
+ */
 class PasswordChecker {
 public:
     PasswordChecker() = default;
@@ -16,7 +21,7 @@ public:
         if (nextChecker) {
             return nextChecker->check(password);
         }
-        return "";  // No issues found
+        return "";
     }
 
 protected:
