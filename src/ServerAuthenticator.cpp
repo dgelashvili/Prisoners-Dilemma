@@ -1,4 +1,7 @@
 #include "ServerAuthenticator.h"
+
+#include <thread>
+
 #include "HelperFunctions.h"
 #include <vector>
 
@@ -20,7 +23,7 @@ bool ServerAuthenticator::handleRegistration(const SOCKET clientSocket) {
     std::lock_guard<std::mutex> lock(authMutex);
     const std::string output = authHandler->registerUser(
         userInput[0], userInput[1], userInput[2]);
-    send(clientSocket, output.c_str(), (int)(strlen(output.c_str())), 0);
+    sendToClient(clientSocket, output);
 
     return true;
 }
@@ -48,12 +51,12 @@ std::string ServerAuthenticator::handleLogin(const SOCKET clientSocket,
         if (activeUsers.contains(userInput[0])) {
             output = "You are already logged in.";
         } else {
-            send(clientSocket, output.c_str(), (int)(strlen(output.c_str())), 0);
+            sendToClient(clientSocket, output);
             return userInput[0];
         }
     }
 
-    send(clientSocket, output.c_str(), (int)(strlen(output.c_str())), 0);
+    sendToClient(clientSocket, output);
     return "";
 }
 
@@ -86,11 +89,12 @@ std::string ServerAuthenticator::loginRegistrationPhase(const SOCKET clientSocke
             }
         } else if (command == "EXIT") {
             const auto goodbye_message = "Goodbye!";
-            send(clientSocket, goodbye_message, (int)(strlen(goodbye_message)), 0);
+            sendToClient(clientSocket, goodbye_message);
             break;
         } else {
             const auto unknown_message = "unknown command: " + command;
-            send(clientSocket, unknown_message.c_str(), (int)(strlen(unknown_message.c_str())), 0);
+            sendToClient(clientSocket, unknown_message);
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     }
 

@@ -6,9 +6,11 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <queue>
 #include <memory>
 #include <unordered_set>
 #include <mutex>
+#include <condition_variable>
 #include "ServerAuthenticator.h"
 
 #pragma comment(lib, "Ws2_32.lib")
@@ -34,16 +36,24 @@ private:
     static void initializeWinSock();
     void setupListeningSocket();
     void acceptConnections();
+    void matchmakingLoop();
+    void mainMenuLoop(SOCKET clientSocket, const std::string& username);
     void handleClient(SOCKET clientSocket);
 
     std::string ip;
     int port;
     SOCKET listeningSocket;
+    std::atomic<bool> running;
     std::vector<std::thread> clientThreads;
+
     std::mutex activeUsersMutex;
     std::unordered_set<std::string> activeUsers;
-    std::atomic<bool> running;
     std::shared_ptr<ServerAuthenticator> authenticator;
+
+    std::mutex matchmakingMutex;
+    std::condition_variable cv;
+    std::queue<std::pair<std::string, SOCKET>> matchmakingQueue;
+    std::thread matchmakingThread;
 };
 
 #endif // SERVER_H

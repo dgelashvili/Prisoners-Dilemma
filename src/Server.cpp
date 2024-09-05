@@ -53,6 +53,7 @@ void Server::setupListeningSocket() {
 void Server::start() {
     running = true;
     std::cout << "Server started on " << ip << ":" << port << std::endl;
+    matchmakingThread = std::thread(&Server::matchmakingLoop, this);
     acceptConnections();
 }
 
@@ -69,6 +70,10 @@ void Server::stop() {
         closesocket(listeningSocket);
     }
     WSACleanup();
+    cv.notify_all();
+    if (matchmakingThread.joinable()) {
+        matchmakingThread.join();
+    }
     for (auto& t : clientThreads) {
         if (t.joinable()) {
             t.join();
@@ -94,37 +99,77 @@ void Server::acceptConnections() {
 }
 
 /**
+ * This is a single thread which is for pairing users which are in the queue.
+ * It uses matchmakingQueue where all players who want to play are
+ * Everything is thread-saved using condition variable and mutex
+ */
+void Server::matchmakingLoop() {
+    while (running) {
+        std::unique_lock<std::mutex> lock(matchmakingMutex);
+        cv.wait(lock, [&]() { return matchmakingQueue.size() >= 2 || !running; });
+
+        while (matchmakingQueue.size() >= 2) {
+            const std::string player1 = matchmakingQueue.front().first;
+            const SOCKET client1Socket = matchmakingQueue.front().second;
+            matchmakingQueue.pop();
+            const std::string player2 = matchmakingQueue.front().first;
+            const SOCKET client2Socket = matchmakingQueue.front().second;
+            matchmakingQueue.pop();
+
+            std::cout << "Paired " << player1 << " " << client1Socket
+            << " with " << player2 << " " << client2Socket << std::endl;
+        }
+    }
+}
+
+void Server::mainMenuLoop(const SOCKET clientSocket, const std::string& username) {
+    while(true) {
+        std::string mainMenu = "play/exit (P/X): ";
+        std::vector<std::string> userInput = promptUser(clientSocket, {mainMenu});
+        if (userInput.empty()) {
+            break;
+        }
+        if (userInput[0] == "P") {
+            {
+                std::lock_guard<std::mutex> lock(matchmakingMutex);
+                const std::pair pair(username, clientSocket);
+                matchmakingQueue.push(pair);
+            }
+            cv.notify_one();
+            while (true) {
+
+            }
+        } else if (userInput[0] == "X") {
+            const auto goodbye_message = "Goodbye!";
+            sendToClient(clientSocket, goodbye_message);
+            break;
+        } else {
+            const auto unknown_message = "unknown command: " + userInput[0];
+            sendToClient(clientSocket, unknown_message);
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+    }
+}
+
+/**
  * Starts with loginRegistrationPhase, if client logs in successfully, stores the username in 'activeUsers'
  * so while logged in, no other client can log in using the same account
  */
 void Server::handleClient(const SOCKET clientSocket) {
-    std::string username = authenticator->loginRegistrationPhase(clientSocket, activeUsersMutex, activeUsers);
+    const std::string username = authenticator->loginRegistrationPhase(clientSocket, activeUsersMutex, activeUsers);
     if (username.empty()) {
         closesocket(clientSocket);
         return;
     }
 
-    //make this username active
     {
         std::lock_guard<std::mutex> lock(activeUsersMutex);
         activeUsers.insert(username);
     }
 
-
-    std::vector<std::string> userInput = promptUser(clientSocket, {"HELLO WORLD!\n(press X to exit): "});
-    if (userInput.empty()) {
-        closesocket(clientSocket);
-
-        //deactivate username
-        {
-            std::lock_guard<std::mutex> lock(activeUsersMutex);
-            activeUsers.erase(username);
-        }
-        return;
-    }
+    mainMenuLoop(clientSocket, username);
 
     closesocket(clientSocket);
-    //deactivate username
     {
         std::lock_guard<std::mutex> lock(activeUsersMutex);
         activeUsers.erase(username);
