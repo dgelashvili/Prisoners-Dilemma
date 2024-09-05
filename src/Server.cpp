@@ -98,20 +98,35 @@ void Server::acceptConnections() {
  * so while logged in, no other client can log in using the same account
  */
 void Server::handleClient(const SOCKET clientSocket) {
-    std::string username = authenticator->loginRegistrationPhase(clientSocket, activeUsers);
+    std::string username = authenticator->loginRegistrationPhase(clientSocket, activeUsersMutex, activeUsers);
     if (username.empty()) {
         closesocket(clientSocket);
         return;
     }
-    activeUsers.insert(username);
+
+    //make this username active
+    {
+        std::lock_guard<std::mutex> lock(activeUsersMutex);
+        activeUsers.insert(username);
+    }
+
 
     std::vector<std::string> userInput = promptUser(clientSocket, {"HELLO WORLD!\n(press X to exit): "});
     if (userInput.empty()) {
         closesocket(clientSocket);
-        activeUsers.erase(username);
+
+        //deactivate username
+        {
+            std::lock_guard<std::mutex> lock(activeUsersMutex);
+            activeUsers.erase(username);
+        }
         return;
     }
 
     closesocket(clientSocket);
-    activeUsers.erase(username);
+    //deactivate username
+    {
+        std::lock_guard<std::mutex> lock(activeUsersMutex);
+        activeUsers.erase(username);
+    }
 }

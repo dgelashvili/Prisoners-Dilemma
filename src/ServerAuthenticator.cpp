@@ -33,7 +33,7 @@ bool ServerAuthenticator::handleRegistration(const SOCKET clientSocket) {
  * Uses authHandler to send corresponding message to the client
  */
 std::string ServerAuthenticator::handleLogin(const SOCKET clientSocket,
-                                                const std::unordered_set<std::string>& activeUsers) {
+                std::mutex& activeUsersMutex, const std::unordered_set<std::string> &activeUsers) {
     std::vector<std::string> userInput = promptUser(clientSocket,
         {"Enter username: ", "Enter password: "});
     if (userInput.empty()) {
@@ -44,6 +44,7 @@ std::string ServerAuthenticator::handleLogin(const SOCKET clientSocket,
     std::string output = authHandler->loginUser(userInput[0], userInput[1]);
 
     if (output.find("logged in successfully") != std::string::npos) {
+        std::lock_guard<std::mutex> lock2(activeUsersMutex);
         if (activeUsers.contains(userInput[0])) {
             output = "You are already logged in.";
         } else {
@@ -65,7 +66,7 @@ std::string ServerAuthenticator::handleLogin(const SOCKET clientSocket,
  * Otherwise, returns empty string, meaning a 'default' username
  */
 std::string ServerAuthenticator::loginRegistrationPhase(const SOCKET clientSocket,
-                                                        const std::unordered_set<std::string>& activeUsers) {
+                                std::mutex& activeUsersMutex, const std::unordered_set<std::string>& activeUsers) {
     while (true) {
         std::vector<std::string> userInput = promptUser(clientSocket, {"Enter command (REG/LOG/EXIT): "});
         if (userInput.empty()) {
@@ -76,7 +77,7 @@ std::string ServerAuthenticator::loginRegistrationPhase(const SOCKET clientSocke
                 break;
             }
         } else if (command == "LOG") {
-            std::string username = handleLogin(clientSocket, activeUsers);
+            std::string username = handleLogin(clientSocket, activeUsersMutex, activeUsers);
             if (username == "~") {
                 break;
             }

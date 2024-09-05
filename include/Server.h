@@ -8,6 +8,7 @@
 #include <vector>
 #include <memory>
 #include <unordered_set>
+#include <mutex>
 #include "ServerAuthenticator.h"
 
 #pragma comment(lib, "Ws2_32.lib")
@@ -39,6 +40,7 @@ private:
     int port;
     SOCKET listeningSocket;
     std::vector<std::thread> clientThreads;
+    std::mutex activeUsersMutex;
     std::unordered_set<std::string> activeUsers;
     std::atomic<bool> running;
     std::shared_ptr<ServerAuthenticator> authenticator;

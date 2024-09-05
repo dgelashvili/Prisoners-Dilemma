@@ -17,8 +17,10 @@ public:
     ~ServerAuthenticator() = default;
 
     bool handleRegistration(SOCKET clientSocket);
-    std::string handleLogin(SOCKET clientSocket, const std::unordered_set<std::string>& activeUsers);
-    std::string loginRegistrationPhase(SOCKET clientSocket, const std::unordered_set<std::string>& activeUsers);
+    std::string handleLogin(SOCKET clientSocket,
+                            std::mutex& activeUsersMutex, const std::unordered_set<std::string> &activeUsers);
+    std::string loginRegistrationPhase(SOCKET clientSocket,
+                            std::mutex& activeUsersMutex, const std::unordered_set<std::string>& activeUsers);
 
 private:
     std::mutex authMutex;
