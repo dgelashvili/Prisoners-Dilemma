@@ -28,8 +28,9 @@ int main() {
     auto const lengthChecker = std::make_shared<LengthChecker>(8, upperCaseChecker);
 
     const auto authHandler = std::make_shared<AuthHandler>(userDao, lengthChecker);
+    const auto serverAuthenticator = std::make_shared<ServerAuthenticator>(authHandler);
 
-    Server server("127.0.0.1", 54000, authHandler);
+    Server server("127.0.0.1", 54000, serverAuthenticator);
     globalServer = &server;
     server.start();
 
