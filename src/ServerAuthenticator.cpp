@@ -92,7 +92,7 @@ std::string ServerAuthenticator::loginRegistrationPhase(const SOCKET clientSocke
             sendToClient(clientSocket, goodbye_message);
             break;
         } else {
-            const auto unknown_message = "unknown command: " + command;
+            const auto unknown_message = "unknown command: " + command + "\n";
             sendToClient(clientSocket, unknown_message);
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }

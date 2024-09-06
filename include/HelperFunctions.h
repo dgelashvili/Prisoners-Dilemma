@@ -4,7 +4,7 @@
 #include <winsock2.h>
 #include <string>
 #include <vector>
-
+#include <queue>
 
 /**
  * Wrapper of send function
@@ -45,6 +45,39 @@ inline std::vector<std::string> promptUser(const SOCKET clientSocket, const std:
         userInput.emplace_back(receiveString);
     }
     return userInput;
+}
+
+/**
+ * Takes arguments 'username' and queue 'matchmakingQueue' and returns true if and only if there exists a pair in
+ * the queue which contains 'username'. Does not change 'matchmakingQueue'
+ */
+inline bool findInQueue(const std::string& username, std::queue<std::pair<std::string, SOCKET>>& matchmakingQueue) {
+    std::queue<std::pair<std::string, SOCKET>> queue;
+    bool found = false;
+    while (!matchmakingQueue.empty()) {
+        auto pair = matchmakingQueue.front();
+        found |= pair.first == username;
+        matchmakingQueue.pop();
+        queue.push(pair);
+    }
+    matchmakingQueue = queue;
+    return found;
+}
+
+/**
+ * Takes arguments 'username' and queue 'matchmakingQueue' and removes the pair in
+ * the queue which contains 'username'. Changes 'matchmakingQueue'
+ */
+inline void removeFromQueue(const std::string& username, std::queue<std::pair<std::string, SOCKET>>& matchmakingQueue) {
+    std::queue<std::pair<std::string, SOCKET>> queue;
+    while (!matchmakingQueue.empty()) {
+        auto pair = matchmakingQueue.front();
+        matchmakingQueue.pop();
+        if (pair.first != username) {
+            queue.push(pair);
+        }
+    }
+    matchmakingQueue = queue;
 }
 
 #endif //HELPERFUNCTIONS_H

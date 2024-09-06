@@ -23,6 +23,9 @@
  * The Server Class has 'ServerAuthenticator' object which helps it to login and register users.
  * 'activeUsers' store the usernames of clients who logged in successfully. This is here to control
  * that no two clients can log in into the same user simultaneously.
+ *
+ * The Server Class also has 'GameSession' object which helps it to handle a game between 2 users.
+ * 'playingUsers' store the usernames of clients who are currently in the game.
  */
 class Server {
 public:
@@ -51,9 +54,14 @@ private:
     std::shared_ptr<ServerAuthenticator> authenticator;
 
     std::mutex matchmakingMutex;
-    std::condition_variable cv;
+    std::condition_variable cvMatchMaking;
+    std::condition_variable cvHandleClient;
     std::queue<std::pair<std::string, SOCKET>> matchmakingQueue;
     std::thread matchmakingThread;
+
+    std::mutex playingMutex;
+    std::condition_variable cvPlaying;
+    std::unordered_set<std::string> playingUsers;
 };
 
 #endif // SERVER_H

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <utility>
 #include "HelperFunctions.h"
+#include "GameSession.h"
 
 //starts initializing WinSock and setups 'listeningSocket'
 Server::Server(std::string  ip, const int port, std::shared_ptr<ServerAuthenticator> serverAuthenticator)
@@ -70,7 +71,7 @@ void Server::stop() {
         closesocket(listeningSocket);
     }
     WSACleanup();
-    cv.notify_all();
+    cvMatchMaking.notify_all();
     if (matchmakingThread.joinable()) {
         matchmakingThread.join();
     }
@@ -102,13 +103,15 @@ void Server::acceptConnections() {
  * This is a single thread which is for pairing users which are in the queue.
  * It uses matchmakingQueue where all players who want to play are
  * Everything is thread-saved using condition variable and mutex
+ *
+ * After pairing, starts a game between two of them
  */
 void Server::matchmakingLoop() {
     while (running) {
         std::unique_lock<std::mutex> lock(matchmakingMutex);
-        cv.wait(lock, [&]() { return matchmakingQueue.size() >= 2 || !running; });
+        cvMatchMaking.wait(lock, [&]() { return matchmakingQueue.size() >= 2 || !running; });
 
-        while (matchmakingQueue.size() >= 2) {
+        while (running && matchmakingQueue.size() >= 2) {
             const std::string player1 = matchmakingQueue.front().first;
             const SOCKET client1Socket = matchmakingQueue.front().second;
             matchmakingQueue.pop();
@@ -116,14 +119,36 @@ void Server::matchmakingLoop() {
             const SOCKET client2Socket = matchmakingQueue.front().second;
             matchmakingQueue.pop();
 
-            std::cout << "Paired " << player1 << " " << client1Socket
-            << " with " << player2 << " " << client2Socket << std::endl;
+            sendToClient(client1Socket, "Paired with " + player2 + "! Get Ready!\n");
+            sendToClient(client2Socket, "Paired with " + player1 + "! Get Ready!\n");
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+
+            {
+                std::lock_guard<std::mutex> lock2(playingMutex);
+                playingUsers.insert(player1);
+                playingUsers.insert(player2);
+            }
+            GameSession gameSession(player1, client1Socket, player2, client2Socket,
+                playingMutex, cvPlaying, playingUsers);
+            std::thread([gameSession]() mutable {
+                gameSession.runGame();
+            }).detach();
+
+            cvHandleClient.notify_all();
         }
     }
 }
 
+/**
+ * This is a main menu of the game. It asks user if one wants to play or exit
+ * Once the player chooses to play, this method puts username and socket associated with them into queue
+ * and notifies 'matchmakingLoop' that it should check the size of 'matchmakingQueue'
+ *
+ * Waits up until the game is ended and only then goes back to the start of the loop
+ */
 void Server::mainMenuLoop(const SOCKET clientSocket, const std::string& username) {
-    while(true) {
+    const auto matchmakingTimeout = std::chrono::seconds(30);
+    while(running) {
         std::string mainMenu = "play/exit (P/X): ";
         std::vector<std::string> userInput = promptUser(clientSocket, {mainMenu});
         if (userInput.empty()) {
@@ -135,16 +160,32 @@ void Server::mainMenuLoop(const SOCKET clientSocket, const std::string& username
                 const std::pair pair(username, clientSocket);
                 matchmakingQueue.push(pair);
             }
-            cv.notify_one();
-            while (true) {
-
+            cvMatchMaking.notify_one();
+            {
+                std::unique_lock<std::mutex> lock(matchmakingMutex);
+                if (cvHandleClient.wait_for(lock, matchmakingTimeout,
+                    [&]() { return !findInQueue(username, matchmakingQueue) || !running; })) {
+                    if (!running) {
+                        return;
+                    }
+                } else {
+                    removeFromQueue(username, matchmakingQueue);
+                    sendToClient(clientSocket, "Matchmaking timeout. Try again.\n");
+                    std::this_thread::sleep_for(std::chrono::seconds(1));
+                    continue;
+                }
             }
+            {
+                std::unique_lock<std::mutex> lock(playingMutex);
+                cvPlaying.wait(lock, [&]() { return !playingUsers.contains(username) || !running;});
+            }
+            std::this_thread::sleep_for(std::chrono::seconds(1));
         } else if (userInput[0] == "X") {
             const auto goodbye_message = "Goodbye!";
             sendToClient(clientSocket, goodbye_message);
             break;
         } else {
-            const auto unknown_message = "unknown command: " + userInput[0];
+            const auto unknown_message = "unknown command: " + userInput[0] + "\n";
             sendToClient(clientSocket, unknown_message);
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }

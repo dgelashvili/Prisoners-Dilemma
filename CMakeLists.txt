@@ -10,6 +10,7 @@ add_executable(PrisonersDilemma main.cpp
                 src/UserDao.cpp src/User.cpp src/AuthHandler.cpp
                 src/Checkers/LengthChecker.cpp src/Checkers/UpperCaseChecker.cpp src/Checkers/LowerCaseChecker.cpp
                 src/Server.cpp src/ServerAuthenticator.cpp
+                src/GameSession.cpp
 )
 
 target_link_libraries(PrisonersDilemma Ws2_32)
