@@ -80,4 +80,42 @@ inline void removeFromQueue(const std::string& username, std::queue<std::pair<st
     matchmakingQueue = queue;
 }
 
+inline std::string border = "--------------------\n";
+
+//This function makes a single row of a leaderboard table using 'info' pair
+inline std::string makeRow(const std::pair<std::string, double>& info) {
+    std::string username = info.first;
+    if (username.size() > 8) {
+        username = username.substr(0, 8);
+    } else {
+        int size = 8 - (int)username.size();
+        while (size--) {
+            username += " ";
+        }
+    }
+    std::string score = std::to_string(info.second);
+    if (score.size() > 5) {
+        score = score.substr(0, 5);
+    } else {
+        int size = 5 - (int)score.size();
+        while (size--) {
+            score += " ";
+        }
+    }
+    return  "| " + username + " | " + score + " |\n";
+}
+
+//This function makes a leaderboard table using 'info' vector of pairs
+inline std::string makeTable(const std::vector<std::pair<std::string, double>>& info) {
+    std::string result;
+    result += border;
+    result += "| Username |  Avg  |\n";
+    result += border;
+    for (const auto & singleInfo : info) {
+        result += makeRow(singleInfo);
+    }
+    result += border;
+    return result;
+}
+
 #endif //HELPERFUNCTIONS_H

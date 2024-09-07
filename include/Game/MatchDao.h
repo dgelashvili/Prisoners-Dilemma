@@ -17,8 +17,8 @@ public:
     ~MatchDAO();
 
     void addMatch(const Match& match) const;
-    //[[nodiscard]] std::pair<std::string, double> getAverageScore(const std::string& username) const;
-    //[[nodiscard]] std::vector<std::pair<std::string, double>> getTopPlayers(int num) const;
+    [[nodiscard]] std::pair<std::string, double> getAverageScore(const std::string& username) const;
+    [[nodiscard]] std::vector<std::pair<std::string, double>> getTopPlayers(int num) const;
 
 private:
     sqlite3* db{};

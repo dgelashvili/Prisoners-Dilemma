@@ -150,7 +150,11 @@ void Server::matchmakingLoop() {
 void Server::mainMenuLoop(const SOCKET clientSocket, const std::string& username) {
     const auto matchmakingTimeout = std::chrono::seconds(30);
     while(running) {
-        std::string mainMenu = "play/exit (P/X): ";
+        std::string mainMenu;
+        mainMenu += makeTable(matchDAO->getTopPlayers(5));
+        mainMenu += makeRow(matchDAO->getAverageScore(username));
+        mainMenu += border + "\n";
+        mainMenu += "play/exit (P/X): ";
         std::vector<std::string> userInput = promptUser(clientSocket, {mainMenu});
         if (userInput.empty()) {
             break;
