@@ -12,6 +12,7 @@
 #include <mutex>
 #include <condition_variable>
 #include "ServerAuthenticator.h"
+#include "MatchDao.h"
 
 #pragma comment(lib, "Ws2_32.lib")
 
@@ -29,7 +30,8 @@
  */
 class Server {
 public:
-    Server(std::string  ip, int port, std::shared_ptr<ServerAuthenticator> serverAuthenticator);
+    Server(std::string  ip, int port, std::shared_ptr<ServerAuthenticator> serverAuthenticator,
+            std::shared_ptr<MatchDAO> matchDAO);
     ~Server();
 
     void start();
@@ -62,6 +64,7 @@ private:
     std::mutex playingMutex;
     std::condition_variable cvPlaying;
     std::unordered_set<std::string> playingUsers;
+    std::shared_ptr<MatchDAO> matchDAO;
 };
 
 #endif // SERVER_H

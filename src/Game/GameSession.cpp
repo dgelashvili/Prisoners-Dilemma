@@ -4,10 +4,10 @@
 
 GameSession::GameSession(std::string player1, const SOCKET client1Socket, std::string player2, const SOCKET client2Socket,
                          std::mutex& playingMutex, std::condition_variable& cvPlaying,
-                         std::unordered_set<std::string>& playingUsers)
+                         std::unordered_set<std::string>& playingUsers, std::shared_ptr<MatchDAO> matchDAO)
     : player1(std::move(player1)), client1Socket(client1Socket),
       player2(std::move(player2)), client2Socket(client2Socket),
-      playingMutex(playingMutex), cvPlaying(cvPlaying), playingUsers(playingUsers) {
+      playingMutex(playingMutex), cvPlaying(cvPlaying), playingUsers(playingUsers), matchDAO(std::move(matchDAO)) {
     score1 = 0;
     score2 = 0;
 }
@@ -70,6 +70,9 @@ void GameSession::runGame() {
     const std::string finalMessage = "Match is over!\nYour final average scores are:\n" +
                                     player1 + ": " + std::to_string(average1) + "\n" +
                                     player2 + ": " + std::to_string(average2) + "\n\n";
+
+    const Match match(player1, average1, player2, average2);
+    matchDAO->addMatch(match);
 
     if (score1 > score2) {
         sendToClient(client1Socket, finalMessage + "You won the match!\n");

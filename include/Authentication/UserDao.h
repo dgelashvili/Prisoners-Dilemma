@@ -21,8 +21,6 @@ public:
 
 private:
     sqlite3* db{};
-
-    void executeSQL(const std::string& sql) const;
 };
 
 #endif // USERDAO_H

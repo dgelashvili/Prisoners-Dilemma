@@ -6,12 +6,13 @@
 #include <mutex>
 #include <condition_variable>
 #include <unordered_set>
+#include "MatchDao.h"
 
 class GameSession {
 public:
     GameSession(std::string player1, SOCKET client1Socket, std::string player2, SOCKET client2Socket,
                 std::mutex& playingMutex, std::condition_variable& cvPlaying,
-                std::unordered_set<std::string>& playingUsers);
+                std::unordered_set<std::string>& playingUsers, std::shared_ptr<MatchDAO> matchDAO);
     ~GameSession() = default;
 
     void runGame();
@@ -31,6 +32,8 @@ private:
     std::mutex& playingMutex;
     std::condition_variable& cvPlaying;
     std::unordered_set<std::string>& playingUsers;
+
+    std::shared_ptr<MatchDAO> matchDAO;
 };
 
 #endif //GAMESESSION_H

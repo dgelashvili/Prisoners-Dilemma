@@ -20,8 +20,10 @@ void signalHandler(int signal) {
 int main() {
     std::signal(SIGINT, signalHandler);
 
-    const auto userDao =
-        std::make_shared<UserDAO>("C:/Users/demet/Desktop/PrisonersDilemma/database.sqlite");
+    std::string dbPath = "C:/Users/demet/Desktop/PrisonersDilemma/database.sqlite";
+
+    const auto userDao = std::make_shared<UserDAO>(dbPath);
+    const auto matchDao = std::make_shared<MatchDAO>(dbPath);
 
     auto const lowerCaseChecker = std::make_shared<LowerCaseChecker>();
     auto const upperCaseChecker = std::make_shared<UpperCaseChecker>(lowerCaseChecker);
@@ -30,7 +32,7 @@ int main() {
     const auto authHandler = std::make_shared<AuthHandler>(userDao, lengthChecker);
     const auto serverAuthenticator = std::make_shared<ServerAuthenticator>(authHandler);
 
-    Server server("127.0.0.1", 54000, serverAuthenticator);
+    Server server("127.0.0.1", 54000, serverAuthenticator, matchDao);
     globalServer = &server;
     server.start();
 

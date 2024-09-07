@@ -9,7 +9,7 @@
  */
 class User {
 public:
-    User(std::string  username, std::string  password);
+    User(std::string username, std::string password);
     ~User() = default;
 
     [[nodiscard]] bool equals(const User& other) const;

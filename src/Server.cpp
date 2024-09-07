@@ -5,9 +5,10 @@
 #include "GameSession.h"
 
 //starts initializing WinSock and setups 'listeningSocket'
-Server::Server(std::string  ip, const int port, std::shared_ptr<ServerAuthenticator> serverAuthenticator)
+Server::Server(std::string  ip, const int port, std::shared_ptr<ServerAuthenticator> serverAuthenticator,
+                std::shared_ptr<MatchDAO> matchDAO)
     : ip(std::move(ip)), port(port), listeningSocket(INVALID_SOCKET),
-        running(false), authenticator(std::move(serverAuthenticator)) {
+        running(false), authenticator(std::move(serverAuthenticator)), matchDAO(std::move(matchDAO)) {
     initializeWinSock();
     setupListeningSocket();
 }
@@ -129,7 +130,7 @@ void Server::matchmakingLoop() {
                 playingUsers.insert(player2);
             }
             GameSession gameSession(player1, client1Socket, player2, client2Socket,
-                playingMutex, cvPlaying, playingUsers);
+                playingMutex, cvPlaying, playingUsers, matchDAO);
             std::thread([gameSession]() mutable {
                 gameSession.runGame();
             }).detach();
