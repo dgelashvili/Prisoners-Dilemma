@@ -12,7 +12,8 @@ class GameSession {
 public:
     GameSession(std::string player1, SOCKET client1Socket, std::string player2, SOCKET client2Socket,
                 std::mutex& playingMutex, std::condition_variable& cvPlaying,
-                std::unordered_set<std::string>& playingUsers, std::shared_ptr<MatchDAO> matchDAO);
+                std::unordered_set<std::string>& playingUsers, std::mutex& matchDaoMutex,
+                std::shared_ptr<MatchDAO> matchDAO);
     ~GameSession() = default;
 
     void runGame();
@@ -33,6 +34,7 @@ private:
     std::condition_variable& cvPlaying;
     std::unordered_set<std::string>& playingUsers;
 
+    std::mutex& matchDaoMutex;
     std::shared_ptr<MatchDAO> matchDAO;
 };
 

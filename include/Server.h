@@ -64,6 +64,8 @@ private:
     std::mutex playingMutex;
     std::condition_variable cvPlaying;
     std::unordered_set<std::string> playingUsers;
+
+    std::mutex matchDaoMutex;
     std::shared_ptr<MatchDAO> matchDAO;
 };
 

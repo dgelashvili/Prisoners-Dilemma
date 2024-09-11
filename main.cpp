@@ -20,7 +20,7 @@ void signalHandler(int signal) {
 int main() {
     std::signal(SIGINT, signalHandler);
 
-    std::string dbPath = "C:/Users/demet/Desktop/PrisonersDilemma/database.sqlite";
+    std::string dbPath = "../database.sqlite";
 
     const auto userDao = std::make_shared<UserDAO>(dbPath);
     const auto matchDao = std::make_shared<MatchDAO>(dbPath);

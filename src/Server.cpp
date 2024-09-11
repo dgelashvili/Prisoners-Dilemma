@@ -81,7 +81,6 @@ void Server::stop() {
             t.join();
         }
     }
-    activeUsers.clear();
 }
 
 //accepts new client and stores its corresponding new thread into 'clientThreads'
@@ -130,7 +129,7 @@ void Server::matchmakingLoop() {
                 playingUsers.insert(player2);
             }
             GameSession gameSession(player1, client1Socket, player2, client2Socket,
-                playingMutex, cvPlaying, playingUsers, matchDAO);
+                playingMutex, cvPlaying, playingUsers, matchDaoMutex, matchDAO);
             std::thread([gameSession]() mutable {
                 gameSession.runGame();
             }).detach();
@@ -151,10 +150,13 @@ void Server::mainMenuLoop(const SOCKET clientSocket, const std::string& username
     const auto matchmakingTimeout = std::chrono::seconds(30);
     while(running) {
         std::string mainMenu;
-        mainMenu += makeTable(matchDAO->getTopPlayers(5));
-        mainMenu += makeRow(matchDAO->getAverageScore(username));
-        mainMenu += border + "\n";
-        mainMenu += "play/exit (P/X): ";
+        {
+            std::unique_lock<std::mutex> lock(matchDaoMutex);
+            mainMenu += makeTable(matchDAO->getTopPlayers(5));
+            mainMenu += makeRow(matchDAO->getAverageScore(username));
+            mainMenu += border + "\n";
+            mainMenu += "play/exit (P/X): ";
+        }
         std::vector<std::string> userInput = promptUser(clientSocket, {mainMenu});
         if (userInput.empty()) {
             break;
